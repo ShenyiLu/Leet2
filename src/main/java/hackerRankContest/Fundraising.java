@@ -48,7 +48,7 @@ public class Fundraising {
         HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap = buildReverseMap(maxProfitAllGroups);
         HashMap<Integer, List<TreeSet<Integer>>> factorLayeredIndex = cuttingBranch(reverseMap, guestTable.size());
         int maxCollected = -1;
-        for (int size: factorLayeredIndex.keySet()) {
+        for (int size : factorLayeredIndex.keySet()) {
             List<TreeSet<Integer>> layer = factorLayeredIndex.get(size);
             maxCollected = Math.max(maxCollected, getMax(reverseMap, layer, size, guestTable.size()));
         }
@@ -56,34 +56,104 @@ public class Fundraising {
     }
 
     static int getMax(HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap, List<TreeSet<Integer>> layer, int size, int tableCount) {
+//        printLayer(layer);
+
         int setCount = tableCount / size;
+//        System.out.println("table count: " + tableCount);
+//        System.out.println("size: " + size);
+//        System.out.println("set count: " + setCount);
         if (setCount == 1) {
             // case: subset equals full set
             TreeSet<Integer> set = layer.get(0);
             List<List<Integer>> resultList = reverseMap.get(set);
             int result = -1;
-            for (List<Integer> indexAndResult: resultList) {
+            for (List<Integer> indexAndResult : resultList) {
                 result = Math.max(result, indexAndResult.get(1));
             }
-//            System.out.println(result);
+
             return result;
         } else {
             List<List<TreeSet<Integer>>> searchResult = new ArrayList<>();
-            if (setCount == tableCount) {
-                searchResult.add(layer);
-            } else {
-                findValidDivideDFS(layer, setCount, 0, new HashSet<>(), layer, searchResult);
+            findValidDivideDFS(layer, setCount, 0, new HashSet<>(), new ArrayList<>(), searchResult);
+            return findMaxProfit(searchResult, reverseMap);
+        }
+    }
+    static void printLayer(List<TreeSet<Integer>> layer) {
+        System.out.println("Print one layer of subsets");
+        int index = 0;
+        for (TreeSet<Integer> treeset: layer) {
+            System.out.println("Print Treeset " + index);
+            for (int i: treeset) {
+                System.out.print(i + " ");
             }
-            return findMaxProfit(searchResult);
+            System.out.println();
+            index++;
         }
     }
 
-    static int findMaxProfit(List<List<TreeSet<Integer>>> searchResult) {
+    static int findMaxProfit(List<List<TreeSet<Integer>>> searchResult, HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap) {
         if (searchResult.size() == 0) {
             return -1;
         }
 
-        return 0;
+        int max = -1;
+
+        // search result to list of possible solutions
+        List<List<List<Integer>>> dfsList = new ArrayList<>();
+        for (List<TreeSet<Integer>> search : searchResult) {
+            for (TreeSet<Integer> key: search) {
+                dfsList.add(reverseMap.get(key));
+            }
+            // do dfs
+            max = Math.max(max, findMaxProfitDFS(dfsList, 0, new HashSet<>()));
+            printDFSList(dfsList);
+            dfsList.clear();
+        }
+
+        return max;
+    }
+
+    static void printDFSList(List<List<List<Integer>>> dfsList) {
+        System.out.println("Assumed divide count: " + dfsList.size());
+        for (int index = 0; index < dfsList.size(); index++) {
+            System.out.println("divide index: " + index);
+            List<List<Integer>> maybe = dfsList.get(index);
+            for (List<Integer> list: maybe) {
+                System.out.println("team: " + list.get(0) + " profit: " + list.get(1));
+            }
+        }
+    }
+
+    // TODO still not correct
+    static int findMaxProfitDFS(List<List<List<Integer>>> dfsList, int index, HashSet<Integer> visited) {
+        // TODO solve this
+        if (index == dfsList.size()) {
+            return 0;
+        }
+
+
+
+        int profit = -1;
+        List<List<Integer>> teamAndProfitList = dfsList.get(index);
+        for (List<Integer> teamAndProfit : teamAndProfitList) {
+            int currTeam = teamAndProfit.get(0);
+            int currProfit = teamAndProfit.get(1);
+            if (visited.contains(currTeam)) {
+                continue;
+            }
+
+            visited.add(currTeam);
+
+            // dfs and profit
+            int dfsResult = findMaxProfitDFS(dfsList, index + 1, visited);
+            if (dfsResult == -1) {
+                continue;
+            }
+            profit = Math.max(profit, currProfit + dfsResult);
+
+            visited.remove(currTeam);
+        }
+        return profit;
     }
 
     static void findValidDivideDFS(List<TreeSet<Integer>> layer, int setCount, int currIndex,
@@ -92,23 +162,29 @@ public class Fundraising {
             result.add(new ArrayList<>(currSet));
             return;
         }
+//        System.out.println("currSet size: " + currSet.size());
+
         for (int i = currIndex; i < layer.size(); i++) {
             TreeSet<Integer> maybe = layer.get(i);
-            for (int element: maybe) {
+            for (int element : maybe) {
                 if (currElements.contains(element)) {
                     continue;
                 }
             }
             // add elements to currElements
-            for (int element: maybe) {
+            for (int element : maybe) {
                 currElements.add(element);
             }
+            // add current set to currset
+            currSet.add(maybe);
 
             // dfs
             findValidDivideDFS(layer, setCount, i + 1, currElements, currSet, result);
 
+            // remove current set from currset
+            currSet.remove(currSet.size() - 1);
             // remove elements from currElements
-            for (int element: maybe) {
+            for (int element : maybe) {
                 currElements.remove(element);
             }
         }
@@ -122,10 +198,10 @@ public class Fundraising {
                 factorHash.add(factor);
             }
         }
-        for (TreeSet<Integer> treeSet: reverseMap.keySet()) {
+        for (TreeSet<Integer> treeSet : reverseMap.keySet()) {
             int size = treeSet.size();
             if (factorHash.contains(treeSet.size())) {
-                if (!factorLayeredIndex.containsKey(size)){
+                if (!factorLayeredIndex.containsKey(size)) {
                     factorLayeredIndex.put(size, new ArrayList<>());
                 }
                 factorLayeredIndex.get(size).add(treeSet);
@@ -155,31 +231,27 @@ public class Fundraising {
         return reverseMap;
     }
 
-    // TODO bugs here
     static void dfsMaxCollect(int[] studentCharm, List<List<Integer>> guestTable, List<Integer> visited, int[] kRemains,
                               int currentSum, HashMap<TreeSet<Integer>, Integer> maxProfitPerGroup) {
         if (visited.size() == guestTable.size()) {
             return;
         }
-        // TODO have to check all possible sequences
+
         for (int guestTableIndex = 0; guestTableIndex < guestTable.size(); guestTableIndex++) {
+
             if (visited.contains(guestTableIndex)) {
                 continue;
             }
             List<Integer> guests = guestTable.get(guestTableIndex);
             int[] kRemainsCopy = copyArray(kRemains);
+
+
             if (canCollect(studentCharm, guests, kRemainsCopy)) {
                 visited.add(guestTableIndex);
 
                 // collect money
                 int collected = collectMoney(studentCharm, guests, kRemainsCopy);
-                System.out.print("studentCharm: ");
-                for (int charm: studentCharm) {
-                    System.out.print(charm + " ");
-                }
-                System.out.println();
-                System.out.println(guests);
-                System.out.println("collected: " + collected);
+
                 int sum = currentSum + collected;
 
                 // update map of sum
@@ -202,7 +274,7 @@ public class Fundraising {
         for (int i = 0; i < kRemains.length; i++) {
             result[i] = kRemains[i];
         }
-        return kRemains;
+        return result;
     }
 
     // check if there's enough students to collect money
