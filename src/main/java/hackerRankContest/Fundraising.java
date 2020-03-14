@@ -46,23 +46,66 @@ public class Fundraising {
 
         // build data structure to handle each possible divide
         HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap = buildReverseMap(maxProfitAllGroups);
-        HashMap<Integer, List<TreeSet<Integer>>> factorLayeredIndex = cuttingBranch(reverseMap, guestTable.size());
+        List<List<TreeSet<Integer>>> subsets = getSubsets(reverseMap, guestTable.size());
         int maxCollected = -1;
-        for (int size : factorLayeredIndex.keySet()) {
-            List<TreeSet<Integer>> layer = factorLayeredIndex.get(size);
-            maxCollected = Math.max(maxCollected, getMax(reverseMap, layer, size, guestTable.size()));
+        for (List<TreeSet<Integer>> layer : subsets) {
+            // all layers should be valid
+            maxCollected = Math.max(maxCollected, getMax(reverseMap, layer, guestTable.size()));
         }
         System.out.println(maxCollected);
     }
 
-    static int getMax(HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap, List<TreeSet<Integer>> layer, int size, int tableCount) {
-//        printLayer(layer);
+    static List<List<TreeSet<Integer>>> getSubsets(HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap, int tableCount) {
+        List<TreeSet<Integer>> subsetList = new ArrayList<>();
+        List<List<TreeSet<Integer>>> result = new ArrayList<>();
+        for (TreeSet<Integer> treeSet : reverseMap.keySet()) {
+            subsetList.add(treeSet);
+        }
+        getSubsetDFS(subsetList, 0, tableCount,new HashSet<>(), new ArrayList<>(), result);
+        return result;
+    }
 
-        int setCount = tableCount / size;
-//        System.out.println("table count: " + tableCount);
-//        System.out.println("size: " + size);
-//        System.out.println("set count: " + setCount);
-        if (setCount == 1) {
+    // horrible time complexity
+    static void getSubsetDFS(List<TreeSet<Integer>> subsetList, int index, int tableCount, HashSet<Integer> visited,
+                             List<TreeSet<Integer>> current, List<List<TreeSet<Integer>>> result) {
+        if (visited.size() == tableCount) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+        if (index >= subsetList.size()) {
+            return;
+        }
+
+        // case 1: try to include this subset
+        boolean hasDuplicate = false;
+        TreeSet<Integer> currentTreeSet = subsetList.get(index);
+        for (int element: currentTreeSet) {
+            if (visited.contains(element)) {
+                hasDuplicate = true;
+                break;
+            }
+        }
+
+        // do dfs
+        if (!hasDuplicate) {
+            for (int element: currentTreeSet) {
+                visited.add(element);
+            }
+            current.add(currentTreeSet);
+            getSubsetDFS(subsetList, index + 1, tableCount, visited, current, result);
+            current.remove(current.size() - 1);
+            for (int element: currentTreeSet) {
+                visited.remove(element);
+            }
+        }
+
+        // case 2: not include this subset
+        getSubsetDFS(subsetList, index + 1, tableCount, visited, current, result);
+    }
+
+
+    static int getMax(HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap, List<TreeSet<Integer>> layer, int tableCount) {
+        if (layer.size() == tableCount) {
             // case: subset equals full set
             TreeSet<Integer> set = layer.get(0);
             List<List<Integer>> resultList = reverseMap.get(set);
@@ -73,9 +116,7 @@ public class Fundraising {
 
             return result;
         } else {
-            List<List<TreeSet<Integer>>> searchResult = new ArrayList<>();
-            findValidDivideDFS(layer, setCount, 0, new HashSet<>(), new ArrayList<>(), searchResult);
-            return findMaxProfit(searchResult, reverseMap);
+            return findMaxProfit2(layer, reverseMap);
         }
     }
     static void printLayer(List<TreeSet<Integer>> layer) {
@@ -89,6 +130,28 @@ public class Fundraising {
             System.out.println();
             index++;
         }
+    }
+
+    static int findMaxProfit2(List<TreeSet<Integer>> searchResult, HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap) {
+        if (searchResult.size() == 0) {
+            return -1;
+        }
+
+        int max = -1;
+
+        // search result to list of possible solutions
+        List<List<List<Integer>>> dfsList = new ArrayList<>();
+
+        for (TreeSet<Integer> key: searchResult) {
+            dfsList.add(reverseMap.get(key));
+        }
+
+        // do dfs
+        max = Math.max(max, findMaxProfitDFS(dfsList, 0, new HashSet<>()));
+//        printDFSList(dfsList);
+        dfsList.clear();
+
+        return max;
     }
 
     static int findMaxProfit(List<List<TreeSet<Integer>>> searchResult, HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap) {
@@ -106,7 +169,7 @@ public class Fundraising {
             }
             // do dfs
             max = Math.max(max, findMaxProfitDFS(dfsList, 0, new HashSet<>()));
-            printDFSList(dfsList);
+//            printDFSList(dfsList);
             dfsList.clear();
         }
 
@@ -188,26 +251,6 @@ public class Fundraising {
                 currElements.remove(element);
             }
         }
-    }
-
-    static HashMap<Integer, List<TreeSet<Integer>>> cuttingBranch(HashMap<TreeSet<Integer>, List<List<Integer>>> reverseMap, int tableCount) {
-        HashSet<Integer> factorHash = new HashSet<>();
-        HashMap<Integer, List<TreeSet<Integer>>> factorLayeredIndex = new HashMap<>();
-        for (int factor = 1; factor <= tableCount; factor++) {
-            if (tableCount % factor == 0) {
-                factorHash.add(factor);
-            }
-        }
-        for (TreeSet<Integer> treeSet : reverseMap.keySet()) {
-            int size = treeSet.size();
-            if (factorHash.contains(treeSet.size())) {
-                if (!factorLayeredIndex.containsKey(size)) {
-                    factorLayeredIndex.put(size, new ArrayList<>());
-                }
-                factorLayeredIndex.get(size).add(treeSet);
-            }
-        }
-        return factorLayeredIndex;
     }
 
     static HashMap<TreeSet<Integer>, List<List<Integer>>> buildReverseMap(List<HashMap<TreeSet<Integer>, Integer>> maxProfitAllGroups) {
