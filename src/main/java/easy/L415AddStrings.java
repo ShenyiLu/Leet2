@@ -1,6 +1,6 @@
 package easy;
 
-public class AddStrings {
+public class L415AddStrings {
     public String addStrings(String num1, String num2) {
         int index = 0;
         int increment = 0;

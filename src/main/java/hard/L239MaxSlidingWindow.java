@@ -19,7 +19,6 @@ public class L239MaxSlidingWindow {
             window.replace(num, window.get(num) + 1);
         }
         max.add(window.lastKey());
-        head++;
         tail++;
 
         while (tail < nums.length) {
