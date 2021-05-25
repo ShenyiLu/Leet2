@@ -1,20 +1,16 @@
 package solutions;
 
 
-
-import easy.L136SingleNumber;
-import easy.L367PerfectSquare;
-import easy.L557ReverseWords;
-import easy.L811SubdomainVisits;
-import hard.L68TextJustification;
-import medium.L1048LongestStringChain;
-import medium.L1060MissingElement;
+import medium.L547FindCircleNum;
 
 
 public class Driver {
     public static void main(String[] args) {
-        L557ReverseWords r = new L557ReverseWords();
-        System.out.println(r.L557("Let's take LeetCode contest"));
+        L547FindCircleNum newNum = new L547FindCircleNum();
+//        int[][] isConnected = new int[][]{{1, 0, 0, 1}, {0, 1, 1, 0}, {0, 1, 1, 1}, {1, 0, 1, 1}};
+        int[][] isConnected = new int[][]{{1,1,0},{1,1,0},{0,0,1}};
+
+        System.out.println(newNum.findCircleNum(isConnected));
     }
 
 }
